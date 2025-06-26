@@ -1,0 +1,7 @@
+date,item_name,quantity_sold,revenue
+2024-01-01,Coffee,25,125.00
+2024-01-01,Croissant,15,45.00
+2024-01-02,Coffee,30,150.00
+2024-01-02,Croissant,20,60.00
+2024-01-03,Coffee,28,140.00
+2024-01-03,Croissant,18,54.00 
