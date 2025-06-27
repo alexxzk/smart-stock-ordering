@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Package, AlertTriangle, CheckCircle, Upload } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Plus, Edit, Trash2, Package, AlertTriangle, CheckCircle, Upload, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { 
   getInventoryItems, 
@@ -13,11 +13,11 @@ import InventoryImport from '../components/InventoryImport'
 interface InventoryFormData {
   name: string
   category: string
-  currentStock: number
-  minStock: number
-  maxStock: number
+  currentStock: string
+  minStock: string
+  maxStock: string
   unit: string
-  costPerUnit: number
+  costPerUnit: string
   supplierId: string
 }
 
@@ -32,37 +32,45 @@ export default function Inventory() {
   const { currentUser } = useAuth()
   const [inventory, setInventory] = useState<InventoryItemType[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItemType | null>(null)
   const [formData, setFormData] = useState<InventoryFormData>({
     name: '',
     category: 'Beverages',
-    currentStock: 0,
-    minStock: 0,
-    maxStock: 100,
+    currentStock: '',
+    minStock: '',
+    maxStock: '',
     unit: 'kg',
-    costPerUnit: 0,
+    costPerUnit: '',
     supplierId: ''
   })
+
+  // Memoize loadInventory to prevent unnecessary re-renders
+  const loadInventory = useCallback(async () => {
+    if (!currentUser) return
+    
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Loading inventory...')
+      const items = await getInventoryItems(currentUser.uid)
+      console.log('Inventory loaded:', items.length, 'items')
+      setInventory(items)
+    } catch (error) {
+      console.error('Error loading inventory:', error)
+      setError('Failed to load inventory. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [currentUser])
 
   useEffect(() => {
     if (currentUser) {
       loadInventory()
     }
-  }, [currentUser])
-
-  const loadInventory = async () => {
-    try {
-      setLoading(true)
-      const items = await getInventoryItems(currentUser!.uid)
-      setInventory(items)
-    } catch (error) {
-      console.error('Error loading inventory:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [currentUser, loadInventory])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,24 +78,30 @@ export default function Inventory() {
     if (!currentUser) return
 
     try {
+      setLoading(true)
+      const itemData = {
+        ...formData,
+        currentStock: Number(formData.currentStock),
+        minStock: Number(formData.minStock),
+        maxStock: Number(formData.maxStock),
+        costPerUnit: Number(formData.costPerUnit),
+        userId: currentUser.uid
+      }
       if (editingItem) {
-        await updateInventoryItem(editingItem.id!, {
-          ...formData,
-          userId: currentUser.uid
-        })
+        await updateInventoryItem(editingItem.id!, itemData)
       } else {
-        await addInventoryItem({
-          ...formData,
-          userId: currentUser.uid
-        })
+        await addInventoryItem(itemData)
       }
       
       setShowForm(false)
       setEditingItem(null)
       resetForm()
-      loadInventory()
+      await loadInventory()
     } catch (error) {
       console.error('Error saving inventory item:', error)
+      setError('Failed to save item. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -96,11 +110,11 @@ export default function Inventory() {
     setFormData({
       name: item.name,
       category: item.category,
-      currentStock: item.currentStock,
-      minStock: item.minStock,
-      maxStock: item.maxStock,
+      currentStock: String(item.currentStock),
+      minStock: String(item.minStock),
+      maxStock: String(item.maxStock),
       unit: item.unit,
-      costPerUnit: item.costPerUnit,
+      costPerUnit: String(item.costPerUnit),
       supplierId: item.supplierId
     })
     setShowForm(true)
@@ -109,10 +123,14 @@ export default function Inventory() {
   const handleDelete = async (itemId: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
       try {
+        setLoading(true)
         await deleteInventoryItem(itemId)
-        loadInventory()
+        await loadInventory()
       } catch (error) {
         console.error('Error deleting inventory item:', error)
+        setError('Failed to delete item. Please try again.')
+      } finally {
+        setLoading(false)
       }
     }
   }
@@ -121,11 +139,11 @@ export default function Inventory() {
     setFormData({
       name: '',
       category: 'Beverages',
-      currentStock: 0,
-      minStock: 0,
-      maxStock: 100,
+      currentStock: '',
+      minStock: '',
+      maxStock: '',
       unit: 'kg',
-      costPerUnit: 0,
+      costPerUnit: '',
       supplierId: ''
     })
   }
@@ -147,6 +165,36 @@ export default function Inventory() {
     loadInventory() // Reload inventory after import
   }
 
+  // Show loading state
+  if (loading && inventory.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading inventory...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error && inventory.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={loadInventory}
+            className="btn-primary"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -161,6 +209,7 @@ export default function Inventory() {
               setShowForm(false)
             }}
             className="btn-secondary flex items-center space-x-2"
+            disabled={loading}
           >
             <Upload className="h-4 w-4" />
             <span>Import CSV</span>
@@ -171,12 +220,23 @@ export default function Inventory() {
               setShowImport(false)
             }}
             className="btn-primary flex items-center space-x-2"
+            disabled={loading}
           >
             <Plus className="h-4 w-4" />
             <span>Add Item</span>
           </button>
         </div>
       </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <p className="ml-2 text-red-600">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -185,7 +245,9 @@ export default function Inventory() {
             <Package className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Items</p>
-              <p className="text-2xl font-semibold text-gray-900">{inventory.length}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : inventory.length}
+              </p>
             </div>
           </div>
         </div>
@@ -195,7 +257,9 @@ export default function Inventory() {
             <AlertTriangle className="h-8 w-8 text-red-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Low Stock</p>
-              <p className="text-2xl font-semibold text-gray-900">{lowStockItems}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : lowStockItems}
+              </p>
             </div>
           </div>
         </div>
@@ -280,8 +344,8 @@ export default function Inventory() {
                   required
                   min="0"
                   value={formData.currentStock}
-                  onChange={(e) => setFormData({...formData, currentStock: Number(e.target.value)})}
-                  className="input-field"
+                  onChange={e => setFormData({ ...formData, currentStock: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 appearance-none transition"
                 />
               </div>
               
@@ -309,8 +373,8 @@ export default function Inventory() {
                   required
                   min="0"
                   value={formData.minStock}
-                  onChange={(e) => setFormData({...formData, minStock: Number(e.target.value)})}
-                  className="input-field"
+                  onChange={e => setFormData({ ...formData, minStock: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 appearance-none transition"
                 />
               </div>
               
@@ -323,8 +387,8 @@ export default function Inventory() {
                   required
                   min="0"
                   value={formData.maxStock}
-                  onChange={(e) => setFormData({...formData, maxStock: Number(e.target.value)})}
-                  className="input-field"
+                  onChange={e => setFormData({ ...formData, maxStock: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 appearance-none transition"
                 />
               </div>
               
@@ -338,8 +402,8 @@ export default function Inventory() {
                   min="0"
                   step="0.01"
                   value={formData.costPerUnit}
-                  onChange={(e) => setFormData({...formData, costPerUnit: Number(e.target.value)})}
-                  className="input-field"
+                  onChange={e => setFormData({ ...formData, costPerUnit: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 appearance-none transition"
                 />
               </div>
               
@@ -381,117 +445,86 @@ export default function Inventory() {
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Inventory</h3>
         
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
-        ) : inventory.length === 0 ? (
-          <div className="text-center py-8">
-            <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-2 text-gray-500">No inventory items found</p>
-            <div className="mt-4 space-x-3">
-              <button
-                onClick={() => {
-                  setShowForm(true)
-                  setShowImport(false)
-                }}
-                className="btn-primary"
-              >
-                Add your first item
-              </button>
-              <button
-                onClick={() => {
-                  setShowImport(true)
-                  setShowForm(false)
-                }}
-                className="btn-secondary"
-              >
-                Import from CSV
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Value
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {inventory.map((item) => {
-                  const stockStatus = getStockStatus(item)
-                  const StatusIcon = stockStatus.icon
-                  
-                  return (
-                    <tr key={item.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                          <div className="text-sm text-gray-500">${item.costPerUnit}/{item.unit}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.category}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {item.currentStock} {item.unit}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Min: {item.minStock} | Max: {item.maxStock}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockStatus.bg}`}>
-                          <StatusIcon className={`h-3 w-3 mr-1 ${stockStatus.color}`} />
-                          {stockStatus.status === 'low' ? 'Low Stock' : 
-                           stockStatus.status === 'high' ? 'High Stock' : 'Normal'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${(item.currentStock * item.costPerUnit).toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id!)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Item
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Stock
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Value
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {inventory.map((item) => {
+                const stockStatus = getStockStatus(item)
+                const StatusIcon = stockStatus.icon
+                
+                return (
+                  <tr key={item.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                        <div className="text-sm text-gray-500">${item.costPerUnit}/{item.unit}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.category}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {item.currentStock} {item.unit}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Min: {item.minStock} | Max: {item.maxStock}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockStatus.bg}`}>
+                        <StatusIcon className={`h-3 w-3 mr-1 ${stockStatus.color}`} />
+                        {stockStatus.status === 'low' ? 'Low Stock' : 
+                         stockStatus.status === 'high' ? 'High Stock' : 'Normal'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ${(item.currentStock * item.costPerUnit).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id!)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

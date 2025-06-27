@@ -3,10 +3,17 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Optional
 from datetime import date, datetime
 from pydantic import BaseModel
+import time
+import logging
 
 from app.ml.inventory import InventoryManager
 from app.models.sales import IngredientRequirement
 from app.firebase_init import get_firestore_client
+from app.cache_redis import cached, invalidate_cache
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 security = HTTPBearer()
@@ -46,6 +53,11 @@ class InventoryItemResponse(InventoryItemBase):
     id: str
     userId: str
     lastUpdated: datetime
+
+# Performance monitoring
+def log_performance(operation: str, duration: float, details: str = ""):
+    """Log performance metrics"""
+    logger.info(f"[PERF] {operation} took {duration:.3f}s {details}")
 
 @router.post("/calculate-requirements")
 async def calculate_ingredient_requirements(
@@ -162,42 +174,66 @@ async def create_inventory_item(
     item: InventoryItemCreate,
     user: dict = Depends(lambda: {"uid": "test-user"})  # Placeholder for auth
 ):
-    """Create a new inventory item"""
+    """Create a new inventory item - Optimized for speed"""
+    start_time = time.time()
     try:
         db = get_firestore_client()
         if db is None:
             raise HTTPException(status_code=500, detail="Database not available")
-            
+        
+        # Prepare item data
         item_data = {
             **item.dict(),
             "userId": user["uid"],
             "lastUpdated": datetime.now()
         }
         
+        # Single Firestore operation - just add the document
+        firestore_start = time.time()
         doc_ref = db.collection("inventory").add(item_data)
+        firestore_end = time.time()
         
+        # Calculate timing
+        firestore_duration = firestore_end - firestore_start
+        total_duration = time.time() - start_time
+        
+        # Log performance
+        log_performance("Firestore add inventory", firestore_duration, f"item: {item.name}")
+        log_performance("Total create_inventory_item", total_duration, f"item: {item.name}")
+        
+        # Invalidate cache after creating new item
+        invalidate_cache("inventory")
+        
+        # Return response immediately without extra get operation
         return {
             "id": doc_ref[1].id,
             **item_data
         }
+        
     except Exception as e:
+        total_time = time.time() - start_time
+        logger.error(f"[PERF] create_inventory_item failed after {total_time:.3f}s: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error creating inventory item: {str(e)}"
         )
 
 @router.get("/", response_model=List[InventoryItemResponse])
+@cached(ttl=60, key_prefix="inventory")  # Cache for 1 minute
 async def get_inventory_items(
     user: dict = Depends(lambda: {"uid": "test-user"}),  # Placeholder for auth
     category: Optional[str] = None,
     low_stock: Optional[bool] = None
 ):
-    """Get all inventory items for the current user"""
+    """Get all inventory items for the current user - Cached for performance"""
+    start_time = time.time()
     try:
         db = get_firestore_client()
         if db is None:
             raise HTTPException(status_code=500, detail="Database not available")
-            
+        
+        # Start timing Firestore query
+        firestore_start = time.time()
         inventory_ref = db.collection("inventory")
         query = inventory_ref.where("userId", "==", user["uid"])
         
@@ -212,16 +248,27 @@ async def get_inventory_items(
             item_data["id"] = doc.id
             items.append(item_data)
         
+        firestore_end = time.time()
+        log_performance("Firestore query", firestore_end - firestore_start, f"retrieved {len(items)} items")
+        
         # Filter by low stock if requested
         if low_stock is not None:
+            filter_start = time.time()
             if low_stock:
                 items = [item for item in items if item["currentStock"] <= item["minStock"]]
             else:
                 items = [item for item in items if item["currentStock"] > item["minStock"]]
+            filter_end = time.time()
+            log_performance("Low stock filtering", filter_end - filter_start, f"filtered to {len(items)} items")
+        
+        total_time = time.time() - start_time
+        log_performance("Total get_inventory_items", total_time, f"returned {len(items)} items")
         
         return items
         
     except Exception as e:
+        total_time = time.time() - start_time
+        logger.error(f"[PERF] get_inventory_items failed after {total_time:.3f}s: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching inventory items: {str(e)}"
@@ -233,13 +280,17 @@ async def get_inventory_item(
     user: dict = Depends(lambda: {"uid": "test-user"})  # Placeholder for auth
 ):
     """Get a specific inventory item"""
+    start_time = time.time()
     try:
         db = get_firestore_client()
         if db is None:
             raise HTTPException(status_code=500, detail="Database not available")
-            
+        
+        firestore_start = time.time()
         doc_ref = db.collection("inventory").document(item_id)
         doc = doc_ref.get()
+        firestore_end = time.time()
+        log_performance("Firestore get document", firestore_end - firestore_start, f"item_id: {item_id}")
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Inventory item not found")
@@ -249,11 +300,17 @@ async def get_inventory_item(
             raise HTTPException(status_code=403, detail="Access denied")
         
         item_data["id"] = doc.id
+        
+        total_time = time.time() - start_time
+        log_performance("Total get_inventory_item", total_time, f"item_id: {item_id}")
+        
         return item_data
         
     except HTTPException:
         raise
     except Exception as e:
+        total_time = time.time() - start_time
+        logger.error(f"[PERF] get_inventory_item failed after {total_time:.3f}s: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching inventory item: {str(e)}"
@@ -266,13 +323,18 @@ async def update_inventory_item(
     user: dict = Depends(lambda: {"uid": "test-user"})  # Placeholder for auth
 ):
     """Update an inventory item"""
+    start_time = time.time()
     try:
         db = get_firestore_client()
         if db is None:
             raise HTTPException(status_code=500, detail="Database not available")
-            
+        
+        # Get existing document
+        firestore_start = time.time()
         doc_ref = db.collection("inventory").document(item_id)
         doc = doc_ref.get()
+        firestore_end = time.time()
+        log_performance("Firestore get for update", firestore_end - firestore_start, f"item_id: {item_id}")
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Inventory item not found")
@@ -285,18 +347,30 @@ async def update_inventory_item(
         update_data = {k: v for k, v in item_update.dict().items() if v is not None}
         update_data["lastUpdated"] = datetime.now()
         
+        # Perform update
+        update_start = time.time()
         doc_ref.update(update_data)
+        update_end = time.time()
+        log_performance("Firestore update", update_end - update_start, f"item_id: {item_id}")
         
         # Get updated document
+        get_updated_start = time.time()
         updated_doc = doc_ref.get()
         updated_data = updated_doc.to_dict()
         updated_data["id"] = updated_doc.id
+        get_updated_end = time.time()
+        log_performance("Firestore get updated", get_updated_end - get_updated_start, f"item_id: {item_id}")
+        
+        total_time = time.time() - start_time
+        log_performance("Total update_inventory_item", total_time, f"item_id: {item_id}")
         
         return updated_data
         
     except HTTPException:
         raise
     except Exception as e:
+        total_time = time.time() - start_time
+        logger.error(f"[PERF] update_inventory_item failed after {total_time:.3f}s: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error updating inventory item: {str(e)}"
@@ -308,13 +382,18 @@ async def delete_inventory_item(
     user: dict = Depends(lambda: {"uid": "test-user"})  # Placeholder for auth
 ):
     """Delete an inventory item"""
+    start_time = time.time()
     try:
         db = get_firestore_client()
         if db is None:
             raise HTTPException(status_code=500, detail="Database not available")
-            
+        
+        # Get existing document
+        firestore_start = time.time()
         doc_ref = db.collection("inventory").document(item_id)
         doc = doc_ref.get()
+        firestore_end = time.time()
+        log_performance("Firestore get for delete", firestore_end - firestore_start, f"item_id: {item_id}")
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Inventory item not found")
@@ -323,13 +402,22 @@ async def delete_inventory_item(
         if item_data["userId"] != user["uid"]:
             raise HTTPException(status_code=403, detail="Access denied")
         
+        # Perform delete
+        delete_start = time.time()
         doc_ref.delete()
+        delete_end = time.time()
+        log_performance("Firestore delete", delete_end - delete_start, f"item_id: {item_id}")
+        
+        total_time = time.time() - start_time
+        log_performance("Total delete_inventory_item", total_time, f"item_id: {item_id}")
         
         return {"message": "Inventory item deleted successfully"}
         
     except HTTPException:
         raise
     except Exception as e:
+        total_time = time.time() - start_time
+        logger.error(f"[PERF] delete_inventory_item failed after {total_time:.3f}s: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error deleting inventory item: {str(e)}"
@@ -342,13 +430,18 @@ async def update_stock(
     user: dict = Depends(lambda: {"uid": "test-user"})  # Placeholder for auth
 ):
     """Update stock level for an inventory item"""
+    start_time = time.time()
     try:
         db = get_firestore_client()
         if db is None:
             raise HTTPException(status_code=500, detail="Database not available")
-            
+        
+        # Get existing document
+        firestore_start = time.time()
         doc_ref = db.collection("inventory").document(item_id)
         doc = doc_ref.get()
+        firestore_end = time.time()
+        log_performance("Firestore get for stock update", firestore_end - firestore_start, f"item_id: {item_id}")
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Inventory item not found")
@@ -363,8 +456,9 @@ async def update_stock(
             "lastUpdated": datetime.now()
         }
         
+        # Add to stock history if reason provided
         if stock_update.reason:
-            # Add to stock history
+            history_start = time.time()
             history_ref = doc_ref.collection("stock_history")
             history_ref.add({
                 "previousStock": item_data["currentStock"],
@@ -373,22 +467,30 @@ async def update_stock(
                 "timestamp": datetime.now(),
                 "userId": user["uid"]
             })
+            history_end = time.time()
+            log_performance("Firestore add history", history_end - history_start, f"item_id: {item_id}")
         
+        # Update main document
+        update_start = time.time()
         doc_ref.update(update_data)
+        update_end = time.time()
+        log_performance("Firestore stock update", update_end - update_start, f"item_id: {item_id}")
         
-        # Get updated document
-        updated_doc = doc_ref.get()
-        updated_data = updated_doc.to_dict()
-        updated_data["id"] = updated_doc.id
+        total_time = time.time() - start_time
+        log_performance("Total update_stock", total_time, f"item_id: {item_id}")
         
         return {
             "message": "Stock updated successfully",
-            "item": updated_data
+            "previousStock": item_data["currentStock"],
+            "newStock": stock_update.newStock,
+            "itemId": item_id
         }
         
     except HTTPException:
         raise
     except Exception as e:
+        total_time = time.time() - start_time
+        logger.error(f"[PERF] update_stock failed after {total_time:.3f}s: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error updating stock: {str(e)}"

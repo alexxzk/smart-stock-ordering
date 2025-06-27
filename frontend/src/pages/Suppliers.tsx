@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Search, Building, Mail, Phone, MapPin } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Plus, Edit, Trash2, Search, Building, Mail, Phone, MapPin, Loader2, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { 
   getSuppliers, 
@@ -21,6 +21,7 @@ export default function Suppliers() {
   const { currentUser } = useAuth()
   const [suppliers, setSuppliers] = useState<SupplierType[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<SupplierType | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -32,23 +33,30 @@ export default function Suppliers() {
     items: []
   })
 
+  // Memoize loadSuppliers to prevent unnecessary re-renders
+  const loadSuppliers = useCallback(async () => {
+    if (!currentUser) return
+    
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Loading suppliers...')
+      const supplierList = await getSuppliers(currentUser.uid)
+      console.log('Suppliers loaded:', supplierList.length, 'suppliers')
+      setSuppliers(supplierList)
+    } catch (error) {
+      console.error('Error loading suppliers:', error)
+      setError('Failed to load suppliers. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [currentUser])
+
   useEffect(() => {
     if (currentUser) {
       loadSuppliers()
     }
-  }, [currentUser])
-
-  const loadSuppliers = async () => {
-    try {
-      setLoading(true)
-      const supplierList = await getSuppliers(currentUser!.uid)
-      setSuppliers(supplierList)
-    } catch (error) {
-      console.error('Error loading suppliers:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [currentUser, loadSuppliers])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,6 +64,7 @@ export default function Suppliers() {
     if (!currentUser) return
 
     try {
+      setLoading(true)
       if (editingSupplier) {
         await updateSupplier(editingSupplier.id!, {
           ...formData,
@@ -71,9 +80,12 @@ export default function Suppliers() {
       setShowForm(false)
       setEditingSupplier(null)
       resetForm()
-      loadSuppliers()
+      await loadSuppliers()
     } catch (error) {
       console.error('Error saving supplier:', error)
+      setError('Failed to save supplier. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -92,10 +104,14 @@ export default function Suppliers() {
   const handleDelete = async (supplierId: string) => {
     if (confirm('Are you sure you want to delete this supplier?')) {
       try {
+        setLoading(true)
         await deleteSupplier(supplierId)
-        loadSuppliers()
+        await loadSuppliers()
       } catch (error) {
         console.error('Error deleting supplier:', error)
+        setError('Failed to delete supplier. Please try again.')
+      } finally {
+        setLoading(false)
       }
     }
   }
@@ -138,6 +154,36 @@ export default function Suppliers() {
     supplier.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Show loading state
+  if (loading && suppliers.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading suppliers...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error && suppliers.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={loadSuppliers}
+            className="btn-primary"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -148,11 +194,22 @@ export default function Suppliers() {
         <button
           onClick={() => setShowForm(true)}
           className="btn-primary flex items-center space-x-2"
+          disabled={loading}
         >
           <Plus className="h-4 w-4" />
           <span>Add Supplier</span>
         </button>
       </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <p className="ml-2 text-red-600">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -161,7 +218,9 @@ export default function Suppliers() {
             <Building className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Suppliers</p>
-              <p className="text-2xl font-semibold text-gray-900">{suppliers.length}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : suppliers.length}
+              </p>
             </div>
           </div>
         </div>
@@ -172,7 +231,7 @@ export default function Suppliers() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Active Suppliers</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {suppliers.filter(s => s.items.length > 0).length}
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : suppliers.filter(s => s.items.length > 0).length}
               </p>
             </div>
           </div>
@@ -184,7 +243,7 @@ export default function Suppliers() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Items</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {suppliers.reduce((sum, s) => sum + s.items.length, 0)}
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : suppliers.reduce((sum, s) => sum + s.items.length, 0)}
               </p>
             </div>
           </div>

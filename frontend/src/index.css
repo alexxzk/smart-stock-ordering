@@ -75,4 +75,19 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+.input-field {
+  @apply w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 appearance-none transition;
+}
+
+/* Remove number input arrows for Chrome, Safari, Edge */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Remove number input arrows for Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 } 

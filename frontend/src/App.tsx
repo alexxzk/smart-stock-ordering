@@ -6,9 +6,11 @@ import Dashboard from './pages/Dashboard'
 import Forecasting from './pages/Forecasting'
 import Inventory from './pages/Inventory'
 import Suppliers from './pages/Suppliers'
-import SupplierIntegrations from './pages/SupplierIntegrations'
+import Integrations from './pages/Integrations'
 import Orders from './pages/Orders'
 import Login from './pages/Login'
+import TestPage from './pages/TestPage'
+import DebugTest from './pages/DebugTest'
 import ProtectedRoute from './components/ProtectedRoute'
 import PrivacyConsent from './components/PrivacyConsent'
 import PrivacyPolicy from './components/PrivacyPolicy'
@@ -20,6 +22,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/test" element={<TestPage />} />
+          <Route path="/debug-test" element={<DebugTest />} />
           <Route path="/" element={
             <ProtectedRoute>
               <Layout />
@@ -29,7 +33,7 @@ function App() {
             <Route path="forecasting" element={<Forecasting />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="suppliers" element={<Suppliers />} />
-            <Route path="integrations" element={<SupplierIntegrations />} />
+            <Route path="integrations" element={<Integrations />} />
             <Route path="orders" element={<Orders />} />
           </Route>
         </Routes>

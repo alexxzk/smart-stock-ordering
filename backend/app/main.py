@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
 import firebase_admin
 from firebase_admin import auth
 import os
 from dotenv import load_dotenv
+import time
+import logging
 
 # Explicitly load config.env
 load_dotenv("config.env")
@@ -19,10 +23,16 @@ from app.api import excel_processor as excel_router
 from app.api import suppliers as suppliers_router
 from app.api import supplier_integrations as supplier_integrations_router
 from app.api import users as users_router
+from app.routes import integrations as integrations_router
 from app.firebase_init import get_firestore_client
+from app.api.cache import router as cache_router
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize Firebase and Firestore
-db = get_firestore_client()
+get_firestore_client()
 
 # Check if we're in development mode
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
@@ -33,6 +43,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add performance middleware
+@app.middleware("http")
+async def add_performance_logging(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    
+    # Log slow requests (>1 second)
+    if duration > 1.0:
+        logger.warning(f"[PERF] Slow request: {request.method} {request.url.path} took {duration:.3f}s")
+    else:
+        logger.info(f"[PERF] Request: {request.method} {request.url.path} took {duration:.3f}s")
+    
+    return response
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -41,6 +66,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add Gzip compression for better performance
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Security
 security = HTTPBearer(auto_error=False)
@@ -123,6 +151,18 @@ app.include_router(
     tags=["Users"],
     dependencies=[Depends(verify_token)]
 )
+app.include_router(
+    integrations_router.router, 
+    prefix="/api/integrations", 
+    tags=["Integrations"],
+    dependencies=[Depends(verify_token)]
+)
+app.include_router(
+    cache_router, 
+    prefix="/api/cache", 
+    tags=["Cache Management"],
+    dependencies=[Depends(verify_token)]
+)
 
 @app.get("/")
 async def root():
@@ -141,6 +181,7 @@ async def health_check():
 async def test_firestore():
     """Test endpoint to verify Firestore connection"""
     try:
+        db = get_firestore_client()
         if db is None:
             return {"error": "Firestore not initialized"}
         
