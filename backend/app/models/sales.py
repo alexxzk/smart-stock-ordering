@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, List, Optional, Any
 from datetime import date, datetime
 import json
 
 class SalesData(BaseModel):
     """Model for individual sales record"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     date: date
     sales_amount: float = Field(..., gt=0, description="Total daily sales amount")
     orders_count: int = Field(..., ge=0, description="Number of orders for the day")
@@ -12,6 +14,8 @@ class SalesData(BaseModel):
 
 class SalesDataUpload(BaseModel):
     """Model for CSV upload response"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     filename: str
     records_count: int
     date_range: Dict[str, str]
@@ -20,12 +24,16 @@ class SalesDataUpload(BaseModel):
 
 class ForecastRequest(BaseModel):
     """Model for forecasting request"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     forecast_days: int = Field(30, ge=1, le=365, description="Number of days to forecast")
     confidence_level: float = Field(0.95, ge=0.8, le=0.99, description="Confidence interval")
     model_type: str = Field("simple", pattern="^(simple|prophet|random_forest)$", description="ML model to use")
 
 class ForecastResult(BaseModel):
     """Model for forecasting results"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     dates: List[date]
     predicted_sales: List[float]
     predicted_orders: List[int]
@@ -37,6 +45,8 @@ class ForecastResult(BaseModel):
 
 class IngredientRequirement(BaseModel):
     """Model for ingredient requirements"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     ingredient_name: str
     current_stock: float
     required_amount: float
@@ -48,6 +58,8 @@ class IngredientRequirement(BaseModel):
 
 class SupplierOrder(BaseModel):
     """Model for supplier order"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     supplier_name: str
     order_items: List[Dict[str, Any]]
     total_cost: float

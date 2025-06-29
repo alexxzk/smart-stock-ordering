@@ -3,11 +3,21 @@ services:
     name: smart-stock-ordering-backend
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: bash build.sh
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:$PORT
     rootDir: backend
     envVars:
       - key: DEV_MODE
         value: false
       - key: PYTHON_VERSION
-        value: 3.11.0 
+        value: 3.11.7
+      - key: PIP_NO_CACHE_DIR
+        value: "1"
+      - key: PIP_DISABLE_PIP_VERSION_CHECK
+        value: "1"
+    # Redis will be automatically connected via REDIS_URL environment variable
+
+  - type: redis
+    name: smart-stock-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru 
