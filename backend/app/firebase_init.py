@@ -39,11 +39,19 @@ def get_firestore_client():
                     "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/dummy%40dummy.iam.gserviceaccount.com"
                 })
             else:
+                # Fix the private key format - handle both escaped and unescaped newlines
+                if "\\n" in firebase_private_key:
+                    firebase_private_key = firebase_private_key.replace("\\n", "\n")
+                
+                # Ensure the private key has proper formatting
+                if not firebase_private_key.startswith("-----BEGIN PRIVATE KEY-----"):
+                    firebase_private_key = f"-----BEGIN PRIVATE KEY-----\n{firebase_private_key}\n-----END PRIVATE KEY-----\n"
+                
                 cred = credentials.Certificate({
                     "type": "service_account",
                     "project_id": os.getenv("FIREBASE_PROJECT_ID"),
                     "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
-                    "private_key": firebase_private_key.replace("\\n", "\n"),
+                    "private_key": firebase_private_key,
                     "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
                     "client_id": os.getenv("FIREBASE_CLIENT_ID"),
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
