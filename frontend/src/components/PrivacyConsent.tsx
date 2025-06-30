@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
+import { db } from '../config/firebase';
 
 interface PrivacySettings {
   marketing: boolean;
@@ -113,7 +113,7 @@ const PrivacyConsent: React.FC = () => {
     
     try {
       // Request data export from backend
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/export-data`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/export-data`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${await user.getIdToken()}`,
