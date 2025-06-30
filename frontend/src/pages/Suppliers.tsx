@@ -56,7 +56,7 @@ export default function Suppliers() {
     if (currentUser) {
       loadSuppliers()
     }
-  }, [currentUser, loadSuppliers])
+  }, [currentUser])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

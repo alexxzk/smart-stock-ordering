@@ -70,7 +70,7 @@ export default function Inventory() {
     if (currentUser) {
       loadInventory()
     }
-  }, [currentUser, loadInventory])
+  }, [currentUser])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
