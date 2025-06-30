@@ -61,7 +61,12 @@ async def add_performance_logging(request, call_next):
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Frontend URLs
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:3000",
+        "https://smart-stock-ordering.vercel.app",  # Vercel frontend
+        os.getenv("FRONTEND_URL", ""),  # Allow custom frontend URL via env var
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

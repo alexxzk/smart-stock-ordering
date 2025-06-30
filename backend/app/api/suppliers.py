@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Optional
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import time
 import logging
 
@@ -18,6 +18,7 @@ security = HTTPBearer()
 
 # Pydantic models
 class SupplierBase(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     name: str
     contact_person: str
     email: str
@@ -29,9 +30,11 @@ class SupplierBase(BaseModel):
     categories: List[str]
 
 class SupplierCreate(SupplierBase):
+    model_config = ConfigDict(protected_namespaces=())
     pass
 
 class SupplierUpdate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     name: Optional[str] = None
     contact_person: Optional[str] = None
     email: Optional[str] = None
@@ -43,6 +46,7 @@ class SupplierUpdate(BaseModel):
     categories: Optional[List[str]] = None
 
 class SupplierResponse(SupplierBase):
+    model_config = ConfigDict(protected_namespaces=())
     id: str
     userId: str
     created_at: datetime

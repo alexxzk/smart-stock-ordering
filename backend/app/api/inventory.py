@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Optional
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import time
 import logging
 
@@ -23,6 +23,7 @@ inventory_manager = InventoryManager()
 
 # Pydantic models
 class InventoryItemBase(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     name: str
     category: str
     currentStock: float
@@ -33,9 +34,11 @@ class InventoryItemBase(BaseModel):
     supplierId: str
 
 class InventoryItemCreate(InventoryItemBase):
+    model_config = ConfigDict(protected_namespaces=())
     pass
 
 class InventoryItemUpdate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     name: Optional[str] = None
     category: Optional[str] = None
     currentStock: Optional[float] = None
@@ -46,10 +49,12 @@ class InventoryItemUpdate(BaseModel):
     supplierId: Optional[str] = None
 
 class StockUpdate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     newStock: float
     reason: Optional[str] = None
 
 class InventoryItemResponse(InventoryItemBase):
+    model_config = ConfigDict(protected_namespaces=())
     id: str
     userId: str
     lastUpdated: datetime
