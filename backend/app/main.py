@@ -22,6 +22,7 @@ from app.api import ordering as ordering_router
 from app.api import excel_processor as excel_router
 from app.api import suppliers as suppliers_router
 from app.api import supplier_integrations as supplier_integrations_router
+from app.api import pos_integrations as pos_integrations_router
 from app.api import users as users_router
 from app.routes import integrations as integrations_router
 from app.firebase_init import get_firestore_client
@@ -66,6 +67,7 @@ app.add_middleware(
         "http://localhost:3000",
         "https://smart-stock-ordering.vercel.app",  # Vercel frontend
         os.getenv("FRONTEND_URL", ""),  # Allow custom frontend URL via env var
+        "https://smart-stock-ordering-clean-22.onrender.com",  # Your frontend URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -148,6 +150,12 @@ app.include_router(
     supplier_integrations_router.router, 
     prefix="/api/supplier-integrations", 
     tags=["Supplier Integrations"],
+    dependencies=[Depends(verify_token)]
+)
+app.include_router(
+    pos_integrations_router.router, 
+    prefix="/api/pos-integrations", 
+    tags=["POS Integrations"],
     dependencies=[Depends(verify_token)]
 )
 app.include_router(
