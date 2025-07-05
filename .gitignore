@@ -134,3 +134,4 @@ tmp/
 temp/ backend/config/firebase_config.json
 # Firebase and sensitive files
 backend/config/*.json
+backend/firebase-service-account.json
