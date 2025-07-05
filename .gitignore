@@ -131,4 +131,6 @@ jspm_packages/
 
 # Temporary folders
 tmp/
-temp/ 
+temp/ backend/config/firebase_config.json
+# Firebase and sensitive files
+backend/config/*.json
