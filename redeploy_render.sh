@@ -57,10 +57,10 @@ if ! command -v render &> /dev/null; then
     print_info "Please follow these steps:"
     echo ""
     echo "1. Go to https://dashboard.render.com"
-    echo "2. Select your backend service (smart-stock-ordering-backend)"
+    echo "2. Select your backend service (smart-stock-ordering-api)"
     echo "3. Click 'Manual Deploy' → 'Deploy latest commit'"
     echo "4. Wait for backend deployment to complete"
-    echo "5. Select your frontend service"
+    echo "5. Select your frontend service (smart-stock-ordering-clean)"
     echo "6. Click 'Manual Deploy' → 'Deploy latest commit'"
     echo ""
 else
@@ -68,7 +68,7 @@ else
     
     # Trigger backend deployment
     print_info "Triggering backend deployment..."
-    render deploy smart-stock-ordering-backend
+    render deploy smart-stock-ordering-api
     
     # Wait for backend to be ready
     print_info "Waiting for backend deployment to complete..."
@@ -76,7 +76,7 @@ else
     
     # Trigger frontend deployment
     print_info "Triggering frontend deployment..."
-    render deploy smart-stock-ordering-frontend
+    render deploy smart-stock-ordering-clean
 fi
 
 # Step 3: Get Service URLs

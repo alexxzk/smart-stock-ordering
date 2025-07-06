@@ -25,7 +25,7 @@ git push origin main
 ### Step 2: Trigger Backend Deployment
 
 1. Go to [Render Dashboard](https://dashboard.render.com)
-2. Find your backend service (`smart-stock-ordering-backend`)
+2. Find your backend service (`smart-stock-ordering-api`)
 3. Click **"Manual Deploy"**
 4. Select **"Deploy latest commit"**
 5. Wait for deployment to complete (usually 2-3 minutes)
