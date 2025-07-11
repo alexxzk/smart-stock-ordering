@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: smart-stock-frontend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
+    rootDir: .
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: VITE_API_BASE_URL
+        value: https://your-backend-service.onrender.com
+      - key: VITE_APP_NAME
+        value: Smart Stock Ordering
+      - key: VITE_APP_VERSION
+        value: 1.0.0
