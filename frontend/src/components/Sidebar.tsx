@@ -7,8 +7,15 @@ import {
   Coffee,
   Building,
   Zap,
-  CreditCard
+  CreditCard,
+  Crown,
+  Calculator
 } from 'lucide-react'
+import { Settings as SettingsIcon } from '@mui/icons-material';
+import { AccountTree as SuperAdminIcon } from '@mui/icons-material';
+import { AutoAwesome as SalesDeductionIcon } from '@mui/icons-material';
+import { Build as SetupWizardIcon } from '@mui/icons-material';
+import { Api as SupplierAPIIcon } from '@mui/icons-material';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
@@ -18,6 +25,10 @@ const navigation = [
   { name: 'Integrations', href: '/integrations', icon: Zap },
   { name: 'POS Integrations', href: '/pos-integrations', icon: CreditCard },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
+  { name: 'Sales Auto-Deduction', href: '/sales-auto-deduction', icon: Calculator },
+  { name: 'Super Admin', href: '/super-admin', icon: Crown },
+  { name: 'Setup Wizard', href: '/setup-wizard', icon: SetupWizardIcon },
+  { name: 'Supplier API Integrations', href: '/supplier-api-integrations', icon: SupplierAPIIcon },
 ]
 
 export default function Sidebar() {

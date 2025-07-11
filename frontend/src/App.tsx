@@ -9,12 +9,16 @@ import Suppliers from './pages/Suppliers'
 import Integrations from './pages/Integrations'
 import POSIntegrations from './pages/POSIntegrations'
 import Orders from './pages/Orders'
+import SuperAdmin from './pages/SuperAdmin'
+import SalesAutoDeduction from './components/sales/SalesAutoDeduction'
 import Login from './pages/Login'
 import TestPage from './pages/TestPage'
 import DebugTest from './pages/DebugTest'
 import ProtectedRoute from './components/ProtectedRoute'
 import PrivacyConsent from './components/PrivacyConsent'
 import PrivacyPolicy from './components/PrivacyPolicy'
+import SetupWizard from './components/setup-wizard/SetupWizard';
+import SupplierAPIIntegrations from './components/supplier-api-integrations/SupplierAPIIntegrations';
 
 function App() {
   return (
@@ -37,6 +41,11 @@ function App() {
             <Route path="integrations" element={<Integrations />} />
             <Route path="pos-integrations" element={<POSIntegrations />} />
             <Route path="orders" element={<Orders />} />
+            <Route path="super-admin" element={<SuperAdmin />} />
+            <Route path="sales-auto-deduction" element={<SalesAutoDeduction />} />
+            
+            <Route path="setup-wizard" element={<SetupWizard />} />
+            <Route path="supplier-api-integrations" element={<SupplierAPIIntegrations />} />
           </Route>
         </Routes>
         <PrivacyConsent />

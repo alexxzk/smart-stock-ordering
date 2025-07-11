@@ -24,6 +24,10 @@ from app.api import suppliers as suppliers_router
 from app.api import supplier_integrations as supplier_integrations_router
 from app.api import pos_integrations as pos_integrations_router
 from app.api import users as users_router
+from app.api import super_admin as super_admin_router
+from app.api import sales_deduction as sales_deduction_router
+from app.api import setup_wizard as setup_wizard_router
+from app.api import supplier_api_integrations as supplier_api_router
 from app.routes import integrations as integrations_router
 from app.firebase_init import get_firestore_client
 from app.api.cache import router as cache_router
@@ -165,6 +169,30 @@ app.include_router(
     dependencies=[Depends(verify_token)]
 )
 app.include_router(
+    super_admin_router.router, 
+    prefix="/api/super-admin", 
+    tags=["Super Admin"],
+    dependencies=[Depends(verify_token)]
+)
+app.include_router(
+    sales_deduction_router.router, 
+    prefix="/api/sales-deduction", 
+    tags=["Sales Auto-Deduction"],
+    dependencies=[Depends(verify_token)]
+)
+app.include_router(
+    setup_wizard_router.router, 
+    prefix="/api/setup-wizard", 
+    tags=["Setup Wizard"],
+    dependencies=[Depends(verify_token)]
+)
+app.include_router(
+    supplier_api_router.router, 
+    prefix="/api/supplier-api-integrations", 
+    tags=["Supplier API Integrations"],
+    dependencies=[Depends(verify_token)]
+)
+app.include_router(
     integrations_router.router, 
     prefix="/api/integrations", 
     tags=["Integrations"],
@@ -220,6 +248,58 @@ async def test_firestore():
             
     except Exception as e:
         return {"error": f"Firestore test failed: {str(e)}"}
+
+@app.get("/test-redis")
+async def test_redis():
+    """Test endpoint to verify Redis connection"""
+    try:
+        from app.cache_redis import redis_client
+        if redis_client is None:
+            return {"error": "Redis not initialized"}
+        
+        # Test Redis connection
+        redis_client.set("test_key", "test_value", ex=60)
+        value = redis_client.get("test_key")
+        
+        if value:
+            return {
+                "status": "success",
+                "message": "Redis connection working!",
+                "test_value": value.decode('utf-8')
+            }
+        else:
+            return {"error": "Redis test failed"}
+            
+    except Exception as e:
+        return {"error": f"Redis test failed: {str(e)}"}
+
+@app.get("/api-info")
+async def get_api_info():
+    """Get API information and available endpoints"""
+    return {
+        "name": "Smart Stock Ordering API",
+        "version": "1.0.0",
+        "description": "AI-powered inventory management for cafes and restaurants",
+        "endpoints": {
+            "authentication": "/api/auth",
+            "forecasting": "/api/forecasting",
+            "inventory": "/api/inventory",
+            "orders": "/api/orders",
+            "ai_ordering": "/api/ordering",
+            "excel_processor": "/api/excel-processor",
+            "suppliers": "/api/suppliers",
+            "supplier_integrations": "/api/supplier-integrations",
+            "pos_integrations": "/api/pos-integrations",
+            "users": "/api/users",
+            "super_admin": "/api/super-admin",
+            "sales_deduction": "/api/sales-deduction",
+            "integrations": "/api/integrations",
+            "cache": "/api/cache"
+        },
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "dev_mode": DEV_MODE
+    }
 
 if __name__ == "__main__":
     import uvicorn
