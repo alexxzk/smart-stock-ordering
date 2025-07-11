@@ -452,7 +452,7 @@ const SupplierAPIIntegrations: React.FC = () => {
         </Alert>
       )}
 
-      <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
+      <Tabs value={activeTab} onChange={(_, newValue: number) => setActiveTab(newValue)} sx={{ mb: 3 }}>
         <Tab label="Available Suppliers" />
         <Tab label="Products" />
         <Tab label="Orders" />
@@ -682,7 +682,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                     <InputLabel>Supplier</InputLabel>
                     <Select
                       value={configSupplier}
-                      onChange={(e) => setConfigSupplier(e.target.value)}
+                      onChange={(e: any) => setConfigSupplier(e.target.value)}
                     >
                       {suppliers.filter(s => s.integration_type === 'api').map((supplier) => (
                         <MenuItem key={supplier.id} value={supplier.id}>
@@ -698,7 +698,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                     fullWidth
                     label="API Key"
                     value={configData.api_key}
-                    onChange={(e) => setConfigData({ ...configData, api_key: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, api_key: e.target.value })}
                     type="password"
                   />
                 </Grid>
@@ -709,7 +709,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                       fullWidth
                       label="Location ID"
                       value={configData.location_id}
-                      onChange={(e) => setConfigData({ ...configData, location_id: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, location_id: e.target.value })}
                     />
                   </Grid>
                 )}
@@ -720,7 +720,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                       fullWidth
                       label="Account Number"
                       value={configData.account_number}
-                      onChange={(e) => setConfigData({ ...configData, account_number: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, account_number: e.target.value })}
                     />
                   </Grid>
                 )}
@@ -731,7 +731,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                       fullWidth
                       label="Restaurant ID"
                       value={configData.restaurant_id}
-                      onChange={(e) => setConfigData({ ...configData, restaurant_id: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, restaurant_id: e.target.value })}
                     />
                   </Grid>
                 )}
@@ -763,7 +763,7 @@ const SupplierAPIIntegrations: React.FC = () => {
             fullWidth
             label="API Key"
             value={configData.api_key}
-            onChange={(e) => setConfigData({ ...configData, api_key: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, api_key: e.target.value })}
             type="password"
             sx={{ mb: 2 }}
           />
@@ -773,7 +773,7 @@ const SupplierAPIIntegrations: React.FC = () => {
               fullWidth
               label="Location ID"
               value={configData.location_id}
-              onChange={(e) => setConfigData({ ...configData, location_id: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, location_id: e.target.value })}
               sx={{ mb: 2 }}
             />
           )}
@@ -783,7 +783,7 @@ const SupplierAPIIntegrations: React.FC = () => {
               fullWidth
               label="Account Number"
               value={configData.account_number}
-              onChange={(e) => setConfigData({ ...configData, account_number: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, account_number: e.target.value })}
               sx={{ mb: 2 }}
             />
           )}
@@ -793,7 +793,7 @@ const SupplierAPIIntegrations: React.FC = () => {
               fullWidth
               label="Restaurant ID"
               value={configData.restaurant_id}
-              onChange={(e) => setConfigData({ ...configData, restaurant_id: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfigData({ ...configData, restaurant_id: e.target.value })}
               sx={{ mb: 2 }}
             />
           )}
@@ -822,7 +822,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                 <InputLabel>Order Type</InputLabel>
                 <Select
                   value={orderType}
-                  onChange={(e) => setOrderType(e.target.value as any)}
+                  onChange={(e: any) => setOrderType(e.target.value as any)}
                 >
                   <MenuItem value="api">API Order</MenuItem>
                   <MenuItem value="pdf">PDF Order Sheet</MenuItem>
@@ -837,7 +837,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                   <InputLabel>Supplier</InputLabel>
                   <Select
                     value={orderData.supplier_id}
-                    onChange={(e) => setOrderData({ ...orderData, supplier_id: e.target.value })}
+                    onChange={(e: any) => setOrderData({ ...orderData, supplier_id: e.target.value })}
                   >
                     {suppliers.filter(s => s.integration_type === 'api').map((supplier) => (
                       <MenuItem key={supplier.id} value={supplier.id}>
@@ -854,7 +854,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                     fullWidth
                     label="Supplier Name"
                     value={orderData.supplier_name}
-                    onChange={(e) => setOrderData({ ...orderData, supplier_name: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrderData({ ...orderData, supplier_name: e.target.value })}
                   />
                 </Grid>
                 
@@ -864,7 +864,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                       fullWidth
                       label="Supplier Email"
                       value={orderData.supplier_email}
-                      onChange={(e) => setOrderData({ ...orderData, supplier_email: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrderData({ ...orderData, supplier_email: e.target.value })}
                       type="email"
                     />
                   </Grid>
@@ -885,7 +885,7 @@ const SupplierAPIIntegrations: React.FC = () => {
                   <TextField
                     label="Product Name"
                     value={item.name}
-                    onChange={(e) => updateOrderItem(index, 'name', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateOrderItem(index, 'name', e.target.value)}
                     sx={{ flexGrow: 1 }}
                   />
                   <TextField
