@@ -13,6 +13,11 @@ def get_firestore_client():
     """Get Firestore client, initializing Firebase if needed"""
     global _db
     
+    # Check if we're in dev mode
+    if os.getenv("DEV_MODE", "false").lower() == "true":
+        print("✅ Firebase initialized in dev mode (mock)")
+        return None
+    
     if _db is not None:
         return _db
     

@@ -4,6 +4,7 @@ import logging
 from firebase_admin import firestore
 import uuid
 import collections.abc
+import os
 
 from app.models.sales_with_deduction import (
     SalesRecord, SaleItem, IngredientDeduction, 
@@ -28,7 +29,12 @@ class AutoDeductionService:
     """Service for automatic ingredient deduction and stock management"""
     
     def __init__(self):
-        self.db = firestore.client()
+        # Check if we're in dev mode
+        if os.getenv("DEV_MODE", "false").lower() == "true":
+            self.db = None
+            logger.info("AutoDeductionService initialized in dev mode")
+        else:
+            self.db = firestore.client()
     
     async def process_sale_with_deduction(
         self, 
@@ -49,6 +55,26 @@ class AutoDeductionService:
         Returns:
             Tuple of (sales_record, deductions, low_stock_warnings)
         """
+        # Return mock data in dev mode
+        if self.db is None:
+            logger.info("Returning mock data in dev mode")
+            sale_id = str(uuid.uuid4())
+            now = datetime.now()
+            mock_sales_record = SalesRecord(
+                sale_id=sale_id,
+                restaurant_id=restaurant_id,
+                date=sale_date,
+                timestamp=now,
+                items=sale_items,
+                total_sales_amount=sum(item.total_price for item in sale_items),
+                total_items_sold=sum(item.quantity for item in sale_items),
+                ingredients_deducted={},
+                low_stock_warnings=[],
+                created_at=now,
+                updated_at=now
+            )
+            return mock_sales_record, [], []
+        
         try:
             # Calculate total sales
             total_sales_amount = sum(item.total_price for item in sale_items)
@@ -129,6 +155,9 @@ class AutoDeductionService:
     
     async def _get_recipe_for_menu_item(self, menu_item_id: str, restaurant_id: str) -> Optional[Recipe]:
         """Get recipe for a menu item"""
+        if self.db is None:
+            return None
+            
         try:
             # Get recipe from Firestore
             recipe_docs = self.db.collection('recipes').where('menu_item_id', '==', menu_item_id).stream()
@@ -207,6 +236,9 @@ class AutoDeductionService:
     
     async def _get_ingredient(self, ingredient_id: str, restaurant_id: str) -> Optional[Ingredient]:
         """Get ingredient from Firestore"""
+        if self.db is None:
+            return None
+            
         try:
             doc = self.db.collection('ingredients').document(ingredient_id).get()
             
@@ -257,6 +289,10 @@ class AutoDeductionService:
     
     async def _save_sales_record(self, sales_record: SalesRecord):
         """Save sales record to Firestore"""
+        if self.db is None:
+            logger.info("Skipping save_sales_record in dev mode")
+            return
+            
         try:
             data = serialize_dates(sales_record.dict())
             self.db.collection('sales').document(sales_record.sale_id).set(data)
@@ -266,6 +302,10 @@ class AutoDeductionService:
     
     async def _save_deductions(self, deductions: List[IngredientDeduction]):
         """Save ingredient deductions to Firestore"""
+        if self.db is None:
+            logger.info("Skipping save_deductions in dev mode")
+            return
+            
         try:
             batch = self.db.batch()
             
@@ -282,6 +322,10 @@ class AutoDeductionService:
     
     async def _save_low_stock_warnings(self, warnings: List[LowStockWarning]):
         """Save low stock warnings to Firestore"""
+        if self.db is None:
+            logger.info("Skipping save_low_stock_warnings in dev mode")
+            return
+            
         try:
             batch = self.db.batch()
             
@@ -298,6 +342,10 @@ class AutoDeductionService:
     
     async def _update_ingredient_stock(self, deductions: List[IngredientDeduction]):
         """Update ingredient stock levels in Firestore"""
+        if self.db is None:
+            logger.info("Skipping update_ingredient_stock in dev mode")
+            return
+            
         try:
             batch = self.db.batch()
             
@@ -316,6 +364,10 @@ class AutoDeductionService:
     
     async def get_low_stock_warnings(self, restaurant_id: str) -> List[LowStockWarning]:
         """Get current low stock warnings for a restaurant"""
+        if self.db is None:
+            logger.info("Returning empty low stock warnings in dev mode")
+            return []
+            
         try:
             warnings = []
             
@@ -361,6 +413,10 @@ class AutoDeductionService:
     
     async def restock_ingredient(self, ingredient_id: str, quantity: float, reason: str = "Restock"):
         """Restock an ingredient"""
+        if self.db is None:
+            logger.info("Skipping restock_ingredient in dev mode")
+            return
+            
         try:
             # Get current ingredient
             ingredient = await self._get_ingredient(ingredient_id, "")
@@ -399,6 +455,10 @@ class AutoDeductionService:
         end_date: date
     ) -> List[Dict]:
         """Get ingredient usage report for a date range"""
+        if self.db is None:
+            logger.info("Returning empty ingredient usage report in dev mode")
+            return []
+            
         try:
             # Get all sales records for the date range
             sales_docs = self.db.collection('sales').where('restaurant_id', '==', restaurant_id).stream()

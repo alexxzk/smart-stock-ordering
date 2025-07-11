@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 class RedisCache:
     def __init__(self, redis_url: Optional[str] = None):
         """Initialize Redis cache with connection"""
+        # Check if we're in dev mode
+        if os.getenv("DEV_MODE", "false").lower() == "true":
+            logger.info("✅ Redis cache initialized in dev mode (mock)")
+            self.redis = None
+            return
+            
         self.redis_url = redis_url or os.getenv('REDIS_URL', 'redis://localhost:6379')
         try:
             self.redis = redis.from_url(self.redis_url, decode_responses=True)
