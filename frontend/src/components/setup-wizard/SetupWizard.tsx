@@ -430,7 +430,7 @@ const SetupWizard: React.FC = () => {
             fullWidth
             label="Restaurant Name"
             value={restaurantProfile.name}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, name: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, name: e.target.value})}
             margin="normal"
           />
         </Grid>
@@ -439,7 +439,7 @@ const SetupWizard: React.FC = () => {
             fullWidth
             label="Cuisine Type"
             value={restaurantProfile.cuisine_type}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, cuisine_type: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, cuisine_type: e.target.value})}
             margin="normal"
           />
         </Grid>
@@ -448,7 +448,7 @@ const SetupWizard: React.FC = () => {
             fullWidth
             label="Address"
             value={restaurantProfile.address}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, address: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, address: e.target.value})}
             margin="normal"
             multiline
             rows={2}
@@ -459,7 +459,7 @@ const SetupWizard: React.FC = () => {
             fullWidth
             label="Phone"
             value={restaurantProfile.phone}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, phone: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, phone: e.target.value})}
             margin="normal"
           />
         </Grid>
@@ -469,7 +469,7 @@ const SetupWizard: React.FC = () => {
             label="Email"
             type="email"
             value={restaurantProfile.email}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, email: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, email: e.target.value})}
             margin="normal"
           />
         </Grid>
@@ -478,7 +478,7 @@ const SetupWizard: React.FC = () => {
             fullWidth
             label="Owner Name"
             value={restaurantProfile.owner_name}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, owner_name: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, owner_name: e.target.value})}
             margin="normal"
           />
         </Grid>
@@ -488,7 +488,7 @@ const SetupWizard: React.FC = () => {
             label="Owner Email"
             type="email"
             value={restaurantProfile.owner_email}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, owner_email: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, owner_email: e.target.value})}
             margin="normal"
           />
         </Grid>
@@ -498,7 +498,7 @@ const SetupWizard: React.FC = () => {
             label="Tax Rate"
             type="number"
             value={restaurantProfile.tax_rate}
-            onChange={(e) => setRestaurantProfile({...restaurantProfile, tax_rate: parseFloat(e.target.value) || 0})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRestaurantProfile({...restaurantProfile, tax_rate: parseFloat(e.target.value) || 0})}
             margin="normal"
             inputProps={{ step: 0.01, min: 0, max: 1 }}
           />
@@ -508,7 +508,7 @@ const SetupWizard: React.FC = () => {
             <InputLabel>Currency</InputLabel>
             <Select
               value={restaurantProfile.currency}
-              onChange={(e) => setRestaurantProfile({...restaurantProfile, currency: e.target.value})}
+              onChange={(e: any) => setRestaurantProfile({...restaurantProfile, currency: e.target.value})}
             >
               <MenuItem value="USD">USD ($)</MenuItem>
               <MenuItem value="EUR">EUR (€)</MenuItem>
@@ -905,7 +905,7 @@ const SetupWizard: React.FC = () => {
             rows={10}
             label="CSV Data"
             value={csvData}
-            onChange={(e) => setCsvData(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCsvData(e.target.value)}
             placeholder="Paste your CSV data here..."
           />
         </DialogContent>
