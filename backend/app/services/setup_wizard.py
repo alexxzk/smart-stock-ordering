@@ -2,6 +2,7 @@ import uuid
 import csv
 import io
 import logging
+import os
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from firebase_admin import auth, firestore
@@ -20,10 +21,27 @@ class SetupWizardService:
     """Service for handling restaurant setup wizard"""
     
     def __init__(self):
-        self.db = firestore.client()
+        # Check if we're in dev mode
+        if os.getenv("DEV_MODE", "false").lower() == "true":
+            self.db = None
+            logger.info("SetupWizardService initialized in dev mode")
+        else:
+            self.db = firestore.client()
     
     async def create_session(self, admin_user_id: str) -> SetupWizardSession:
         """Create a new setup wizard session"""
+        # Return mock data in dev mode
+        if self.db is None:
+            session_id = str(uuid.uuid4())
+            session = SetupWizardSession(
+                session_id=session_id,
+                current_step=SetupStep.RESTAURANT_PROFILE,
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+            logger.info(f"Created mock setup session: {session_id}")
+            return session
+        
         try:
             session_id = str(uuid.uuid4())
             session = SetupWizardSession(
@@ -45,6 +63,15 @@ class SetupWizardService:
     
     async def get_session(self, session_id: str) -> Optional[SetupWizardSession]:
         """Get setup wizard session"""
+        # Return mock data in dev mode
+        if self.db is None:
+            return SetupWizardSession(
+                session_id=session_id,
+                current_step=SetupStep.RESTAURANT_PROFILE,
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+        
         try:
             doc = self.db.collection('setup_sessions').document(session_id).get()
             
@@ -60,6 +87,12 @@ class SetupWizardService:
     
     async def update_session(self, session: SetupWizardSession) -> None:
         """Update setup wizard session"""
+        # Skip in dev mode
+        if self.db is None:
+            session.updated_at = datetime.now()
+            logger.info(f"Skipping update_session in dev mode for session {session.session_id}")
+            return
+            
         try:
             session.updated_at = datetime.now()
             self.db.collection('setup_sessions').document(session.session_id).set(session.dict())
